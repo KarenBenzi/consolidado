@@ -1,0 +1,99 @@
+let
+    Origen = Folder.Files("C:\Users\KarenBenzi\OneDrive - Grupo L\Grupo L Intranet - CORTES FY25\P7"),
+    #"Archivos ocultos filtrados1" = Table.SelectRows(Origen, each [Attributes]?[Hidden]? <> true),
+    #"Invocar función personalizada1" = Table.AddColumn(#"Archivos ocultos filtrados1", "Transformar archivo", each #"Transformar archivo"([Content])),
+    #"Columnas con nombre cambiado1" = Table.RenameColumns(#"Invocar función personalizada1", {"Name", "Source.Name"}),
+    #"Otras columnas quitadas1" = Table.SelectColumns(#"Columnas con nombre cambiado1", {"Source.Name", "Transformar archivo"}),
+    #"Columna de tabla expandida1" = Table.ExpandTableColumn(#"Otras columnas quitadas1", "Transformar archivo", Table.ColumnNames(#"Transformar archivo"(#"Archivo de ejemplo"))),
+    #"Tipo cambiado" = Table.TransformColumnTypes(#"Columna de tabla expandida1",{{"Source.Name", type text}, {"Column1", type any}, {"Column2", Int64.Type}, {"Column3", type any}, {"Column4", type any}, {"Column5", type any}, {"Column6", type any}, {"Column7", type any}, {"Column8", type any}, {"Column9", type number}, {"Column10", type number}, {"Column11", type number}, {"Column12", type number}, {"Column13", type number}, {"Column14", type number}, {"Column15", type number}, {"Column16", type number}, {"Column17", type number}, {"Column18", type number}, {"Column19", type number}, {"Column20", type number}, {"Column21", type number}, {"Column22", type number}, {"Column23", type any}, {"Column24", type any}, {"Column25", type number}, {"Column26", type number}, {"Column27", type number}, {"Column28", type number}, {"Column29", type number}, {"Column30", type number}, {"Column31", type number}, {"Column32", type number}, {"Column33", Int64.Type}, {"Column34", type number}, {"Column35", type number}, {"Column36", type number}, {"Column37", type number}, {"Column38", type number}, {"Column39", type number}, {"Column40", type any}, {"Column41", type any}, {"Column42", type any}, {"Column43", type any}, {"Column44", type any}, {"Column45", type any}, {"Column46", type any}, {"Column47", type any}, {"Column48", type any}, {"Column49", type any}, {"Column50", type any}, {"Column51", type any}, {"Column52", type any}, {"Column53", type any}, {"Column54", type text}, {"Column55", type any}, {"Column56", type any}, {"Column57", type any}, {"Column58", type any}, {"Column59", type any}, {"Column60", type text}, {"Column61", type text}}),
+    #"Filas superiores quitadas" = Table.Skip(#"Tipo cambiado",8),
+    #"Encabezados promovidos" = Table.PromoteHeaders(#"Filas superiores quitadas", [PromoteAllScalars=true]),
+    #"Tipo cambiado1" = Table.TransformColumnTypes(#"Encabezados promovidos",{{"AR00F13003 - GCBA HOSPITALES - UDAONDO - Julio - 2025.xlsx", type text}, {"Column2", type any}, {"Column3", Int64.Type}, {"CLIENTE / REMITO", type any}, {"RUBRO", type any}, {"NOMBRE SERVICIO", type any}, {"Column7", Int64.Type}, {"Column8", type number}, {"1", type number}, {"2", type number}, {"3", type number}, {"4", type number}, {"5", type number}, {"6", type number}, {"7", type number}, {"8", type number}, {"9", type number}, {"10", type number}, {"11", type number}, {"12", type number}, {"13", type number}, {"14", type number}, {"15", type number}, {"Column24", type number}, {"16", type number}, {"17", type number}, {"18", type number}, {"19", type number}, {"20", type number}, {"21", type number}, {"22", type number}, {"23", type number}, {"24", type number}, {"25", Int64.Type}, {"26", type number}, {"27", type number}, {"28", type number}, {"29", type number}, {"30", type number}, {"31", type number}, {"Column41", type number}, {"Column42", type number}, {"Column43", type any}, {"Column44", type any}, {"Column45", type any}, {"Column46", type any}, {"Column47", type any}, {"Column48", type any}, {"Column49", type any}, {"Column50", type any}, {"Column51", type any}, {"TIPO DE VENTA", Int64.Type}, {"Column53", type text}, {"NOMBRE", type any}, {"CONCATENADO", type text}, {"1° QUINCENA", type number}, {"2° QUINCENA", type number}, {"1° QUINCENA_1", Int64.Type}, {"2° QUINCENA_2", Int64.Type}, {"Column60", type any}, {"CC", type text}, {"SITE", type text}}),
+    #"Columnas con nombre cambiado" = Table.RenameColumns(#"Tipo cambiado1",{{"AR00F13003 - GCBA HOSPITALES - UDAONDO - Julio - 2025.xlsx", "Nombre Archivo"}, {"Column7", "COSTO"}, {"Column8", "PRECIO"}}),
+    #"Columnas quitadas" = Table.RemoveColumns(#"Columnas con nombre cambiado",{"Column60", "1° QUINCENA_1", "2° QUINCENA_2", "Column43", "Column44", "Column45", "Column46", "Column47", "Column48", "Column49", "Column50", "Column51", "Column2", "Column3"}),
+ // Filtrar filas donde NO se cumpla que Precio y Column42 son 0/null/error al mismo tiempo
+    #"Filas filtradas" = Table.SelectRows(#"Columnas quitadas", each 
+        not (
+            (try [PRECIO] = 0 otherwise true) and 
+            (try [Column42] = 0 otherwise true)
+        )
+    ),
+    #"Filas filtradas1" = Table.SelectRows(#"Filas filtradas", each ([RUBRO] <> null and [RUBRO] <> "RUBRO") and ([Column42] <> 0)),
+    #"Columnas quitadas1" = Table.RemoveColumns(#"Filas filtradas1",{"CC", "SITE"}),
+    #"Columna duplicada" = Table.DuplicateColumn(#"Columnas quitadas1", "Nombre Archivo", "Nombre Archivo - Copia"),
+    #"Dividir columna por delimitador" = Table.SplitColumn(#"Columna duplicada", "Nombre Archivo - Copia", Splitter.SplitTextByEachDelimiter({"-"}, QuoteStyle.Csv, false), {"Nombre Archivo - Copia.1", "Nombre Archivo - Copia.2"}),
+    #"Tipo cambiado2" = Table.TransformColumnTypes(#"Dividir columna por delimitador",{{"Nombre Archivo - Copia.1", type text}, {"Nombre Archivo - Copia.2", type text}}),
+    #"Dividir columna por delimitador1" = Table.SplitColumn(#"Tipo cambiado2", "Nombre Archivo - Copia.2", Splitter.SplitTextByEachDelimiter({"-"}, QuoteStyle.Csv, true), {"Nombre Archivo - Copia.2.1", "Nombre Archivo - Copia.2.2"}),
+    #"Tipo cambiado3" = Table.TransformColumnTypes(#"Dividir columna por delimitador1",{{"Nombre Archivo - Copia.2.1", type text}, {"Nombre Archivo - Copia.2.2", type text}}),
+    #"Columnas quitadas2" = Table.RemoveColumns(#"Tipo cambiado3",{"Nombre Archivo - Copia.2.2"}),
+    #"Dividir columna por delimitador2" = Table.SplitColumn(#"Columnas quitadas2", "Nombre Archivo - Copia.2.1", Splitter.SplitTextByEachDelimiter({"-"}, QuoteStyle.Csv, true), {"Nombre Archivo - Copia.2.1.1", "Nombre Archivo - Copia.2.1.2"}),
+    #"Tipo cambiado4" = Table.TransformColumnTypes(#"Dividir columna por delimitador2",{{"Nombre Archivo - Copia.2.1.1", type text}, {"Nombre Archivo - Copia.2.1.2", type text}}),
+    #"Columnas quitadas3" = Table.RemoveColumns(#"Tipo cambiado4",{"Nombre Archivo - Copia.2.1.2"}),
+    #"Columnas con nombre cambiado2" = Table.RenameColumns(#"Columnas quitadas3",{{"Nombre Archivo - Copia.1", "CC"}, {"Nombre Archivo - Copia.2.1.1", "COMEDOR"}, {"Column24", "1ra Quincena"}, {"Column41", "2da Quincena"}, {"Column42", "TOTAL"}}),
+    #"Columnas quitadas4" = Table.RemoveColumns(#"Columnas con nombre cambiado2",{"NOMBRE", "CONCATENADO", "1° QUINCENA", "2° QUINCENA"}),
+    #"Columnas reordenadas" = Table.ReorderColumns(#"Columnas quitadas4",{"CC", "COMEDOR", "Nombre Archivo", "CLIENTE / REMITO", "RUBRO", "NOMBRE SERVICIO", "COSTO", "PRECIO", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "1ra Quincena", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "2da Quincena", "TOTAL", "TIPO DE VENTA", "Column53"}),
+    #"Columnas con nombre cambiado3" = Table.RenameColumns(#"Columnas reordenadas",{{"COMEDOR", "SITE"}, {"Nombre Archivo", "NOMBRE DE ARCHIVO"}, {"1ra Quincena", "TOTAL QUICENA 1"}, {"2da Quincena", "TOTAL QUICENA 2"}}),
+    #"Columnas quitadas5" = Table.RemoveColumns(#"Columnas con nombre cambiado3",{"TIPO DE VENTA", "Column53"}),
+#"Personalizada agregada" = Table.AddColumn(#"Columnas quitadas5", "FACTURACION", each 
+    (if [PRECIO] = null or [PRECIO] = 0 then 1 else [PRECIO]) * [TOTAL]
+),#"Filas filtradas2" = Table.SelectRows(#"Personalizada agregada", each ([RUBRO] <> 0)),
+#"Errores quitados" = Table.RemoveRowsWithErrors(#"Filas filtradas2", {"FACTURACION"}),
+#"Filas filtradas3" = Table.SelectRows(#"Errores quitados", each [FACTURACION] <> null and [FACTURACION] <> ""),
+#"Personalizada agregada1" = Table.AddColumn(#"Filas filtradas3", "PERIODO", each Date.Month(Date.AddMonths(Date.From(DateTime.LocalNow()), -1))),
+#"Personalizada agregada2" = Table.AddColumn(#"Personalizada agregada1", "FECHA", each Date.EndOfMonth(#date(Date.Year(DateTime.LocalNow()), [PERIODO], 1))),
+#"Columnas reordenadas1" = Table.ReorderColumns(#"Personalizada agregada2",{"FECHA", "PERIODO", "CC", "SITE", "NOMBRE DE ARCHIVO", "CLIENTE / REMITO", "RUBRO", "NOMBRE SERVICIO", "COSTO", "PRECIO", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "TOTAL QUICENA 1", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "TOTAL QUICENA 2", "TOTAL", "FACTURACION"}),
+#"Columnas con nombre cambiado4" = Table.RenameColumns(#"Columnas reordenadas1",{{"SITE", "COMEDOR"}, {"NOMBRE DE ARCHIVO", "Nombre Archivo"}}),
+#"Personalizada agregada3" = Table.AddColumn(
+    #"Columnas con nombre cambiado4",
+    "Personalizado",
+    each Text.Trim(Text.From([CC])) & Text.From([NOMBRE SERVICIO])
+),
+#"Columnas con nombre cambiado5" = Table.RenameColumns(#"Personalizada agregada3",{{"Personalizado", "CONCAT"}}),
+#"Columnas reordenadas2" = Table.ReorderColumns(#"Columnas con nombre cambiado5",{"FECHA", "PERIODO", "CC", "COMEDOR", "Nombre Archivo", "CLIENTE / REMITO", "RUBRO", "CONCAT", "NOMBRE SERVICIO", "COSTO", "PRECIO", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "TOTAL QUICENA 1", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "TOTAL QUICENA 2", "TOTAL", "FACTURACION"}),
+// 🚀 Hacemos el join con la tabla 'anterior'
+#"Merge ConsolidadoAnterior" = Table.NestedJoin(
+    #"Columnas reordenadas2",     // Tabla consolidado
+    {"CONCAT"},                   // Columna clave
+    anterior,                     // Tabla anterior
+    {"CONCAT"},                   // Columna clave
+    "TablaAnterior",              // Nombre de la tabla anidada
+    JoinKind.LeftOuter            // Tipo de join: todas las filas de consolidado
+),
+    #"Columnas con nombre cambiado6" = Table.RenameColumns(#"Merge ConsolidadoAnterior",{{"CONCAT", "CONCAT1"}}),
+
+// 📌 Expandimos columnas de la tabla 'anterior'
+#"Expandido Anterior" = Table.ExpandTableColumn(
+    #"Columnas con nombre cambiado6",
+    "TablaAnterior",
+    Table.ColumnNames(anterior),  // Lista automática de todas las columnas de 'anterior'
+    Table.ColumnNames(anterior)   // Nombres resultantes
+),
+    #"Columnas quitadas6" = Table.RemoveColumns(#"Expandido Anterior",{"CONCAT"}),
+    #"Columnas con nombre cambiado7" = Table.RenameColumns(#"Columnas quitadas6",{{"CONCAT1", "CONCAT"}}),
+
+    // 📌 Columna PRECIO2
+    #"Agregada PRECIO2" = Table.AddColumn(
+        #"Columnas con nombre cambiado7",
+        "PRECIO2",
+        each if Text.Upper(Text.From([RUBRO])) = "CAJA REGISTRADORA"
+             then [TOTAL]
+             else [PRECIO],
+        type number
+    ),
+
+    // 📌 Columna TOTAL2
+    #"Agregada TOTAL2" = Table.AddColumn(
+        #"Agregada PRECIO2",
+        "TOTAL2",
+        each if Text.Upper(Text.From([RUBRO])) = "CAJA REGISTRADORA"
+             then 1
+             else [TOTAL],
+        type number
+    ),
+    #"Columnas reordenadas3" = Table.ReorderColumns(#"Agregada TOTAL2",{"FECHA", "PERIODO", "CC", "COMEDOR", "Nombre Archivo", "CLIENTE / REMITO", "RUBRO", "CONCAT", "NOMBRE SERVICIO", "COSTO", "PRECIO", "PRECIO2", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "TOTAL QUICENA 1", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "TOTAL QUICENA 2", "TOTAL", "TOTAL2", "FACTURACION", "RUBRO CORRECTO", "RUBRO DETALLADO", "FIJO O VARIABLE"}),
+    #"Columnas quitadas7" = Table.RemoveColumns(#"Columnas reordenadas3",{"PRECIO"}),
+    #"Columnas con nombre cambiado8" = Table.RenameColumns(#"Columnas quitadas7",{{"PRECIO2", "PRECIO"}}),
+    #"Columnas quitadas8" = Table.RemoveColumns(#"Columnas con nombre cambiado8",{"TOTAL"}),
+    #"Columnas con nombre cambiado9" = Table.RenameColumns(#"Columnas quitadas8",{{"TOTAL2", "TOTAL"}})
+in
+    #"Columnas con nombre cambiado9"
